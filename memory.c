@@ -13,12 +13,11 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "memory.h"
 #include "uarray.h"
 #include "seq.h"
-
-#define HINT 10
 
 /* Struct definition of a Memory_T which 
    contains two sequences: 
@@ -40,22 +39,22 @@ struct Memory_T {
  */
 Memory_T memory_new(uint32_t length)
 {
-        Memory_T m_new = malloc(sizeof(*m_new));
+        Memory_T m_new = malloc(16);
         assert(m_new != NULL);
 
         /* Creating the segments */
-        m_new->segments = Seq_new(HINT);
+        m_new->segments = Seq_new(10);
         assert(m_new->segments != NULL);
 
         /* Creating the sequence to keep track of free segments */
-        m_new->free = Seq_new(HINT);
+        m_new->free = Seq_new(10);
         assert(m_new->free != NULL);
 
         /* Sets all segments to NULL and populates free segment sequence */
-        for (int seg_num = 0; seg_num < HINT; ++seg_num) {
+        for (int seg_num = 0; seg_num < 10; ++seg_num) {
                 Seq_addlo(m_new->segments, NULL);
 
-                uint32_t *temp = malloc(sizeof(uint32_t));
+                uint32_t *temp = malloc(4);
                 assert(temp != NULL);
 
                 *temp = seg_num;
@@ -156,8 +155,7 @@ uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
 uint32_t memory_map(Memory_T m, uint32_t length)
 {
         assert(m != NULL);
-
-        UArray_T seg = UArray_new(length, sizeof(uint32_t));
+        UArray_T seg = UArray_new(length, 4);
         assert(seg != NULL);
 
         /* Setting values in new segment to 0 */
@@ -203,7 +201,7 @@ void memory_unmap(Memory_T m, uint32_t seg_num)
 
         UArray_free(&unmap);
 
-        uint32_t *free_seg = malloc(sizeof(uint32_t));
+        uint32_t *free_seg = malloc(4);
         assert(free_seg != NULL);
 
         *free_seg = seg_num;

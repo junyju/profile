@@ -22,10 +22,6 @@
 #include "um.h"
 #include "bitpack.h"
 
-#define W_SIZE 32
-#define CHAR_SIZE 8
-#define CHAR_PER_WORD 4
-
 void populate_seg_zero(UM_T um, FILE *fp, uint32_t size);
 uint32_t construct_word(FILE *fp);
 
@@ -41,7 +37,7 @@ int main(int argc, char *argv[])
 
     struct stat file_info;
     stat(argv[1], &file_info);
-    uint32_t size = file_info.st_size / CHAR_PER_WORD;
+    uint32_t size = file_info.st_size / 4;
 
     UM_T um = um_new(size);
     assert(um != NULL);
@@ -87,15 +83,15 @@ uint32_t construct_word(FILE *fp)
     assert(fp != NULL);
 
     uint32_t c = 0, word = 0;
-    int bytes = W_SIZE / CHAR_SIZE;
+    int bytes = 4;
 
     /* Reads in a char and creates word in big endian order */
     for (int c_loop = 0; c_loop < bytes; c_loop++) {
         c = getc(fp);
         assert(!feof(fp));
 
-        unsigned lsb = W_SIZE - (CHAR_SIZE * c_loop) - CHAR_SIZE;
-        word = Bitpack_newu(word, CHAR_SIZE, lsb, c);
+        unsigned lsb = 24 - (8 * c_loop);
+        word = Bitpack_newu(word, 8, lsb, c);
     }
 
     return word;
