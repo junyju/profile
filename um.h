@@ -28,25 +28,25 @@ UM_T um_new(uint32_t length);
 void um_free(UM_T *um);
 
 /* Executes passed in program */
-void um_execute(UM_T um);
+void um_execute(UM_T um, uint32_t* registers);
 void instruction_call(UM_T um, Um_opcode op, uint32_t ra, 
-              uint32_t rb, uint32_t rc);
+              uint32_t rb, uint32_t rc, uint32_t* registers);
 void populate(UM_T um, uint32_t index, uint32_t word);
 
 /* Instructions */
-void      conditional_move(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      segmented_store(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      add(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      multiply(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      divide(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      nand(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      halt(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      map_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      unmap_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-uint32_t  load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc);
-void      load_value(UM_T um, uint32_t ra, uint32_t val);
+void      conditional_move(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      segmented_store(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      add(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      multiply(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      divide(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      nand(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      halt(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      map_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      unmap_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+uint32_t  load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers);
+void      load_value(UM_T um, uint32_t ra, uint32_t val, uint32_t* registers);
 
 #endif

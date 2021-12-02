@@ -85,10 +85,9 @@ void um_free(UM_T *um)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if segment zero is NULL at any point
  */
-void um_execute(UM_T um)
+void um_execute(UM_T um, uint32_t* registers)
 {
     assert(um != NULL);
-    uint32_t registers[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
     UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
     assert(seg_zero != NULL);
@@ -107,7 +106,7 @@ void um_execute(UM_T um)
         if (opcode == 13) {
             ra = Bitpack_getu(word, 3, 25);
             uint32_t value = Bitpack_getu(word, 25, 0);
-            load_value(um, ra, value);
+            load_value(um, ra, value, registers);
             continue;
         } 
 
@@ -118,14 +117,14 @@ void um_execute(UM_T um)
         /* Load Program */
         if (opcode == 12) {
             /* Updates programs counter*/
-            prog_counter = load_program(um, ra, rb, rc);
+            prog_counter = load_program(um, ra, rb, rc, registers);
 
             seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
             assert(seg_zero != NULL);
 
             seg_zero_len = UArray_length(seg_zero);
         } else {
-            instruction_call(um, opcode, ra, rb, rc);
+            instruction_call(um, opcode, ra, rb, rc, registers);
         }
     }
 }
@@ -142,25 +141,25 @@ void um_execute(UM_T um)
  * Notes: is called by um_execute
  */
 void instruction_call(UM_T um, Um_opcode op, uint32_t ra, 
-                      uint32_t rb, uint32_t rc)
+                      uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(op >= 0 && op < 14);
     assert(ra < 8 && rb < 8 && rc < 8);
     assert(um != NULL);
 
     switch (op) {
-        case CMOV: conditional_move(um, ra, rb, rc);  break;
-        case SLOAD: segmented_load(um, ra, rb, rc);   break;
-        case SSTORE: segmented_store(um, ra, rb, rc); break;
-        case ADD: add(um, ra, rb, rc);                break;
-        case MUL: multiply(um, ra, rb, rc);           break;
-        case DIV: divide(um, ra, rb, rc);             break;
-        case NAND: nand(um, ra, rb, rc);              break;
-        case HALT: halt(um, ra, rb, rc);              break;
-        case MAP: map_segment(um, ra, rb, rc);        break;
-        case UNMAP: unmap_segment(um, ra, rb, rc);    break;
-        case OUT: output(um, ra, rb, rc);             break;
-        case IN: input(um, ra, rb, rc);               break;
+        case CMOV: conditional_move(um, ra, rb, rc, registers);  break;
+        case SLOAD: segmented_load(um, ra, rb, rc, registers);   break;
+        case SSTORE: segmented_store(um, ra, rb, rc, registers); break;
+        case ADD: add(um, ra, rb, rc, registers);                break;
+        case MUL: multiply(um, ra, rb, rc, registers);           break;
+        case DIV: divide(um, ra, rb, rc, registers);             break;
+        case NAND: nand(um, ra, rb, rc, registers);              break;
+        case HALT: halt(um, ra, rb, rc, registers);              break;
+        case MAP: map_segment(um, ra, rb, rc, registers);        break;
+        case UNMAP: unmap_segment(um, ra, rb, rc, registers);    break;
+        case OUT: output(um, ra, rb, rc, registers);             break;
+        case IN: input(um, ra, rb, rc, registers);               break;
 
         default: assert(true);
     }
@@ -192,13 +191,13 @@ void populate(UM_T um, uint32_t index, uint32_t word)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void conditional_move(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void conditional_move(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    if (registers_get(um->reg, rc) != 0) {
-        registers_put(um->reg, ra, registers_get(um->reg, rb));
+    if (registers[rc] != 0) {
+        registers[ra] = registers[rb];
     }
 }
 
@@ -209,15 +208,15 @@ void conditional_move(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rb_val = registers[rb];
+    uint32_t rc_val = registers[rc];
 
-    registers_put(um->reg, ra, memory_get(um->mem, rb_val, rc_val));
+    registers[ra] = memory_get(um->mem, rb_val, rc_val);
 }
 
  /* Name: segmented_store
@@ -227,15 +226,15 @@ void segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void segmented_store(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void segmented_store(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t ra_val = registers_get(um->reg, ra);
-    uint32_t rb_val = registers_get(um->reg, rb);
+    uint32_t ra_val = registers[ra];
+    uint32_t rb_val = registers[rb];
 
-    memory_put(um->mem, ra_val, rb_val, registers_get(um->reg, rc));
+    memory_put(um->mem, ra_val, rb_val, registers[rc]);
 }
 
 /* Name: add
@@ -245,15 +244,15 @@ void segmented_store(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void add(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void add(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rb_val = registers[rb];
+    uint32_t rc_val = registers[rc];
 
-    registers_put(um->reg, ra, (rb_val + rc_val));
+    registers[ra] = (rb_val + rc_val);
 }
 
 /* Name: multiply
@@ -263,15 +262,15 @@ void add(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void multiply(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void multiply(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rb_val = registers[rb];
+    uint32_t rc_val = registers[rc];
 
-    registers_put(um->reg, ra, (rb_val * rc_val));       
+    registers[ra] = (rb_val * rc_val);       
 }
 
 /* Name: divide
@@ -281,16 +280,16 @@ void multiply(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void divide(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void divide(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rb_val = registers[rb];
+    uint32_t rc_val = registers[rc];
     assert(rc_val != 0);
 
-    registers_put(um->reg, ra, (rb_val / rc_val));
+    registers[ra] = (rb_val / rc_val);
 }
 
 /* Name: nand
@@ -301,15 +300,15 @@ void divide(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void nand(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void nand(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rb_val = registers[rb];
+    uint32_t rc_val = registers[rc];
 
-    registers_put(um->reg, ra, ~(rb_val & rc_val));
+    registers[ra] = ~(rb_val & rc_val);
 }
 
 /* Name: halt
@@ -319,10 +318,11 @@ void nand(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void halt(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void halt(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
+    (void) registers;
     
     um_free(&um);
     exit(EXIT_SUCCESS);
@@ -336,15 +336,15 @@ void halt(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void map_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void map_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rc_val = registers[rc];
 
     uint32_t index = memory_map(um->mem, rc_val);
-    registers_put(um->reg, rb, index);
+    registers[rb] = index;
 }
 
 /* Name: unmap_segment
@@ -354,12 +354,12 @@ void map_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-void unmap_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void unmap_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rc_val = registers[rc];
 
     memory_unmap(um->mem, rc_val);
 }
@@ -372,12 +372,12 @@ void unmap_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  *        Asserts if any register number is valid
  *        Asserts if value in rc is not valid (not between 0 to 255 inclusive)
  */
-void output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rc_val = registers_get(um->reg, rc);
+    uint32_t rc_val = registers[rc];
     assert(rc_val < 256);
 
     putchar(rc_val);
@@ -393,7 +393,7 @@ void output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  *        Asserts if any register number is valid
  * Note: since we used fgetc, the inputted value can never be greater than 255
  */
-void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc) 
+void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
@@ -401,10 +401,10 @@ void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     int character = fgetc(stdin);
 
     if (character == EOF) {
-        registers_put(um->reg, rc, ~0);
+        registers[rc] = ~0;
     }
 
-    registers_put(um->reg, rc, character);
+    registers[rc] = character;
 }
 
 /* Name: load_program
@@ -414,39 +414,39 @@ void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts UM_T struct is NULL
  *        Asserts if any register number is valid
  */
-uint32_t load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+uint32_t load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
+    uint32_t rb_val = registers[rb];
 
     /* If rb value is 0, 0 is already loaded into segment 0 */
     if (rb_val == 0) {
-        return registers_get(um->reg, rc);
+        return registers[rc];
     }
     
     /* Get the segment to copy */
-    UArray_T to_copy = (UArray_T)Seq_get(um->mem->segments, rb_val);
+    uint32_t* to_copy = (uint32_t*)Seq_get(um->mem->segments, rb_val);
     assert(to_copy != NULL);
 
     /* Creating a copy with the same specifications */
-    int seg_len = UArray_length(to_copy);
-    UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
+    int seg_len = (int) sizeof(to_copy)/sizeof(uint32_t);
+    uint32_t copy[seg_len]; 
+    // UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
     assert(copy != NULL);
 
     /* Deep copying */
     for (int i = 0; i < seg_len; i++){
-        *(uint32_t *)UArray_at(copy, i) = 
-        *(uint32_t *)UArray_at(to_copy, i);
+        copy[i] = to_copy[i];
     }
 
     /* Freeing segment 0 and inserting the copy */
-    UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
-    UArray_free(&seg_zero);
+    uint32_t* seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
+    free(seg_zero);
     Seq_put(um->mem->segments, 0, copy);
 
-    return registers_get(um->reg, rc);
+    return registers[rc];
 }
 
 /* Name: load_value
@@ -456,10 +456,11 @@ uint32_t load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  * Error: Asserts if UM_T struct is NULL
  *        Asserts if register is invalid
  */
-void load_value(UM_T um, uint32_t ra, uint32_t val)
+void load_value(UM_T um, uint32_t ra, uint32_t val, uint32_t* registers)
 {
     assert(um != NULL);
     assert(ra < 8);
 
-    registers_put(um->reg, ra, val);
+    registers[ra] = val;
+    // registers_put(um->reg, ra, val);
 }
