@@ -89,16 +89,17 @@ void um_execute(UM_T um, uint32_t* registers)
 {
     assert(um != NULL);
 
-    UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
+    uint32_t* seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
     assert(seg_zero != NULL);
 
-    int seg_zero_len = UArray_length(seg_zero);
+    int seg_zero_len = seg_zero[0];
     int prog_counter = 0;
     uint32_t opcode, ra, rb, rc, word;
 
     /* Execute words in segment zero until there are none left */
     while (prog_counter < seg_zero_len) {
-        word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
+        // word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
+        word = seg_zero[prog_counter+1];
         opcode = Bitpack_getu(word, 4, 28);
         prog_counter++;
 
@@ -119,10 +120,10 @@ void um_execute(UM_T um, uint32_t* registers)
             /* Updates programs counter*/
             prog_counter = load_program(um, ra, rb, rc, registers);
 
-            seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
+            seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
             assert(seg_zero != NULL);
 
-            seg_zero_len = UArray_length(seg_zero);
+            seg_zero_len = seg_zero[0];
         } else {
             instruction_call(um, opcode, ra, rb, rc, registers);
         }
@@ -431,13 +432,14 @@ uint32_t load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc, uint32_t* 
     assert(to_copy != NULL);
 
     /* Creating a copy with the same specifications */
-    int seg_len = (int) sizeof(to_copy)/sizeof(uint32_t);
-    uint32_t copy[seg_len]; 
+    int seg_len = to_copy[0];
+    uint32_t copy[seg_len + 1]; 
     // UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
     assert(copy != NULL);
 
     /* Deep copying */
-    for (int i = 0; i < seg_len; i++){
+    copy[0] = seg_len;
+    for (int i = 1; i < seg_len+1; i++){
         copy[i] = to_copy[i];
     }
 

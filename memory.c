@@ -80,13 +80,13 @@ void memory_free(Memory_T *m)
         /* Freeing the UArray_T segments */
         int seg_len = Seq_length((*m)->segments);
         for (int seg_num = 0; seg_num < seg_len; ++seg_num) {
-                UArray_T aux = (UArray_T)Seq_remhi((*m)->segments);
+                uint32_t* aux = (uint32_t*)Seq_remhi((*m)->segments);
                 
                 /* If the segment is unmapped, there is nothing to free */
                 if (aux == NULL) {
                         continue;
                 } else {
-                        UArray_free(&aux);
+                        free(aux);
                 }
         }
 
@@ -116,11 +116,15 @@ void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val)
         assert(m != NULL);
         assert(seg < (uint32_t)Seq_length(m->segments));
 
-        UArray_T queried_segment = (UArray_T)Seq_get(m->segments, seg);
+        // UArray_T queried_segment = (UArray_T)Seq_get(m->segments, seg);
+        uint32_t *queried_segment = Seq_get(m->segments, seg);
         assert(queried_segment != NULL);
-        assert(off < (uint32_t)UArray_length(queried_segment));
-
-        *(uint32_t *)UArray_at(queried_segment, off) = val;
+        // assert(off < (uint32_t)UArray_length(queried_segment));
+        printf("off: %d\n", off);
+        printf("size: %d\n", (int) queried_segment[0]);
+        assert(off < queried_segment[0]);
+        queried_segment[off+1] = val;
+        // *(uint32_t *)UArray_at(queried_segment, off) = val;
 }
 
 /* Name: memory_get
@@ -134,13 +138,15 @@ void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val)
 uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
 {
         assert(m != NULL);
+        printf("seg: %d\n", seg);
+        printf("num seg: %d\n", (uint32_t)Seq_length(m->segments));
         assert(seg < (uint32_t)Seq_length(m->segments));
         
-        UArray_T queried_segment = (UArray_T)Seq_get(m->segments, seg);
+        uint32_t* queried_segment = Seq_get(m->segments, seg);
         assert(queried_segment != NULL);
-        assert(off < (uint32_t)UArray_length(queried_segment));
+        assert(off < queried_segment[0]);
 
-        return *(uint32_t *)UArray_at(queried_segment, off);
+        return queried_segment[off+1];
 }
 
 /* Name: memory_map
@@ -155,12 +161,15 @@ uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
 uint32_t memory_map(Memory_T m, uint32_t length)
 {
         assert(m != NULL);
-        UArray_T seg = UArray_new(length, 4);
+        // UArray_T seg = UArray_new(length, 4);
+        uint32_t seg[length + 1];
         assert(seg != NULL);
 
         /* Setting values in new segment to 0 */
-        for (uint32_t arr_index = 0; arr_index < length; ++arr_index) {
-                *(uint32_t *)UArray_at(seg, arr_index) = 0;
+        seg[0] = length;
+        for (uint32_t arr_index = 1; arr_index < length+1; ++arr_index) {
+                // *(uint32_t *)UArray_at(seg, arr_index) = 0;
+                seg[arr_index] = 0;
         }
 
         /* Mapping a segment */
@@ -196,10 +205,10 @@ void memory_unmap(Memory_T m, uint32_t seg_num)
         assert(m != NULL);
         assert(seg_num != 0);
 
-        UArray_T unmap = Seq_get(m->segments, seg_num);
+        uint32_t* unmap = Seq_get(m->segments, seg_num);
         assert(unmap != NULL);
 
-        UArray_free(&unmap);
+        // free(unmap);
 
         uint32_t *free_seg = malloc(4);
         assert(free_seg != NULL);
