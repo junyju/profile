@@ -38,7 +38,6 @@ int main(int argc, char *argv[])
     struct stat file_info;
     stat(argv[1], &file_info);
     uint32_t size = file_info.st_size / 4;
-    uint32_t registers[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
     UM_T um = um_new(size);
     assert(um != NULL);
@@ -46,7 +45,7 @@ int main(int argc, char *argv[])
     populate_seg_zero(um, fp, size);
 
     fclose(fp);
-    um_execute(um, registers);
+    um_execute(um);
 
     um_free(&um);
 
