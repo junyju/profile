@@ -13,10 +13,10 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "registers.h"
 #include "uarray.h"
+
 
 /* Struct definition of a Register_T which 
    contains an unboxed array of uint32_t's to store vals in registers */
@@ -33,17 +33,17 @@ struct Registers_T {
  */
 Registers_T registers_new()
 {
-        Registers_T r_new = malloc(8);
+        Registers_T r_new = malloc(sizeof(*r_new));
         assert(r_new != NULL);
 
-        r_new->registers = UArray_new(8, 4);
+        r_new->registers = UArray_new(8, sizeof(uint32_t));
         assert(r_new->registers != NULL);
 
         /* Sets register's values to 0 */
         for (int index = 0; index < 8; ++index) {
                 *(uint32_t *)UArray_at(r_new->registers, index) = 0;
         }
-        
+
         return r_new;
 }
 

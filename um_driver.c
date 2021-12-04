@@ -83,14 +83,13 @@ uint32_t construct_word(FILE *fp)
     assert(fp != NULL);
 
     uint32_t c = 0, word = 0;
-    int bytes = 4;
 
     /* Reads in a char and creates word in big endian order */
-    for (int c_loop = 0; c_loop < bytes; c_loop++) {
+    for (int c_loop = 0; c_loop < 4; c_loop++) {
         c = getc(fp);
         assert(!feof(fp));
 
-        unsigned lsb = 24 - (8 * c_loop);
+        unsigned lsb = 24 (8 * c_loop);
         word = Bitpack_newu(word, 8, lsb, c);
     }
 

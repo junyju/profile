@@ -24,6 +24,7 @@
 #include "registers.h"
 #include "memory.h"
 
+
 /* Struct definition of a UM_T which 
    contains two structs: 
    - Register_T representing the registers
@@ -51,7 +52,7 @@ struct Memory_T {
  */
 UM_T um_new(uint32_t length)
 {
-    UM_T um_new = malloc(16);
+    UM_T um_new = malloc(sizeof(*um_new));
     assert(um_new != NULL);
 
     um_new->reg = registers_new();
@@ -89,24 +90,24 @@ void um_execute(UM_T um)
 {
     assert(um != NULL);
 
-    uint32_t* seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
+    UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
     assert(seg_zero != NULL);
 
-    int seg_zero_len = seg_zero[0];
+    int seg_zero_len = UArray_length(seg_zero);
     int prog_counter = 0;
     uint32_t opcode, ra, rb, rc, word;
 
     /* Execute words in segment zero until there are none left */
     while (prog_counter < seg_zero_len) {
-        // word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
-        word = seg_zero[prog_counter+1];
+        word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
         opcode = Bitpack_getu(word, 4, 28);
         prog_counter++;
 
         /* Load value */
         if (opcode == 13) {
-            ra = Bitpack_getu(word, 3, 25);
-            uint32_t value = Bitpack_getu(word, 25, 0);
+            uint32_t value_size = 25;
+            ra = Bitpack_getu(word, 3, value_size);
+            uint32_t value = Bitpack_getu(word, value_size, 0);
             load_value(um, ra, value);
             continue;
         } 
@@ -120,10 +121,10 @@ void um_execute(UM_T um)
             /* Updates programs counter*/
             prog_counter = load_program(um, ra, rb, rc);
 
-            seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
+            seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
             assert(seg_zero != NULL);
 
-            seg_zero_len = seg_zero[0];
+            seg_zero_len = UArray_length(seg_zero);
         } else {
             instruction_call(um, opcode, ra, rb, rc);
         }
@@ -393,7 +394,7 @@ void output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
  *        Asserts if any register number is valid
  * Note: since we used fgetc, the inputted value can never be greater than 255
  */
-void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
+void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc) 
 {
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
@@ -403,6 +404,7 @@ void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     if (character == EOF) {
         registers_put(um->reg, rc, ~0);
     }
+
     registers_put(um->reg, rc, character);
 }
 

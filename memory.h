@@ -19,10 +19,10 @@ typedef struct Memory_T *Memory_T;
 
 /* Creates/frees memory associated with a Memory_T */
 Memory_T memory_new(uint32_t length);
-void memory_free(Memory_T *m);
+void     memory_free(Memory_T *m);
 
 /* Allows user to interact with Memory_T data */
-void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val);
+void     memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val);
 uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off);
 
 /* Maps and Unmaps segments to Memory_T sequence */
