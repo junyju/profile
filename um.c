@@ -21,7 +21,7 @@
 #include "uarray.h"
 #include "seq.h"
 #include "bitpack.h"
-// #include "registers.h"
+#include "registers.h"
 #include "memory.h"
 
 /* Struct definition of a UM_T which 
@@ -29,7 +29,7 @@
    - Register_T representing the registers
    - Memory_T representing segmented memory */
 struct UM_T {
-    // Registers_T reg;
+    Registers_T reg;
     Memory_T mem;
 };
 
@@ -54,7 +54,7 @@ UM_T um_new(uint32_t length)
     UM_T um_new = malloc(16);
     assert(um_new != NULL);
 
-    // um_new->reg = registers_new();
+    um_new->reg = registers_new();
     um_new->mem = memory_new(length);
 
     return um_new;
@@ -70,7 +70,7 @@ void um_free(UM_T *um)
 {
     assert((*um) != NULL);
 
-    // registers_free(&(*um)->reg);
+    registers_free(&(*um)->reg);
     memory_free(&(*um)->mem);
     free(*um);
 }

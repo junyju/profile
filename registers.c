@@ -21,7 +21,6 @@
 /* Struct definition of a Register_T which 
    contains an unboxed array of uint32_t's to store vals in registers */
 struct Registers_T {
-        // uint32_t registers[];
         UArray_T registers;
 }; 
 
@@ -46,9 +45,6 @@ Registers_T registers_new()
         }
         
         return r_new;
-
-        // uint32_t r_new[8] = {0,0,0,0,0,0,0,0};
-        // return r_new;
 }
 
 /* Name: registers_free
