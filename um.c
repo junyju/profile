@@ -90,16 +90,19 @@ void um_execute(UM_T um)
 {
     assert(um != NULL);
 
-    UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
+    // UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
+    uint32_t *seg_zero = Seq_get(um->mem->segments, 0);
     assert(seg_zero != NULL);
 
-    int seg_zero_len = UArray_length(seg_zero);
+    // int seg_zero_len = UArray_length(seg_zero);
+    int seg_zero_len = seg_zero[0];
     int prog_counter = 0;
     uint32_t opcode, ra, rb, rc, word;
 
     /* Execute words in segment zero until there are none left */
     while (prog_counter < seg_zero_len) {
-        word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
+        // word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
+        word = seg_zero[prog_counter+1];
         opcode = Bitpack_getu(word, 4, 28);
         prog_counter++;
 
@@ -121,10 +124,10 @@ void um_execute(UM_T um)
             /* Updates programs counter*/
             prog_counter = load_program(um, ra, rb, rc);
 
-            seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
+            seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
             assert(seg_zero != NULL);
 
-            seg_zero_len = UArray_length(seg_zero);
+            seg_zero_len = seg_zero[0];
         } else {
             instruction_call(um, opcode, ra, rb, rc);
         }

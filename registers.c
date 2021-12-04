@@ -36,7 +36,7 @@ Registers_T registers_new()
         Registers_T r_new = malloc(sizeof(*r_new));
         assert(r_new != NULL);
 
-        r_new->registers = UArray_new(8, sizeof(uint32_t));
+        r_new->registers = UArray_new(8, 4);
         assert(r_new->registers != NULL);
 
         /* Sets register's values to 0 */

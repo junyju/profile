@@ -89,7 +89,7 @@ uint32_t construct_word(FILE *fp)
         c = getc(fp);
         assert(!feof(fp));
 
-        unsigned lsb = 24 (8 * c_loop);
+        unsigned lsb = 24 - (8 * c_loop);
         word = Bitpack_newu(word, 8, lsb, c);
     }
 
