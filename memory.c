@@ -128,7 +128,7 @@ void memory_put(Memory_T m, uint32_t seg, uint32_t off, uint32_t val)
         uint32_t *queried_segment = Seq_get(m->segments, seg);
         assert(queried_segment != NULL);
         assert(off < queried_segment[0]);
-
+        /* To account for extra space to store size, add 1 to offset */
         queried_segment[off+1] = val;
 }
 
@@ -152,13 +152,13 @@ uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
         // return *(uint32_t *)UArray_at(queried_segment, off);
         
         assert(m != NULL);
-        assert(seg < (uint32_t)Seq_length(m->segments));
-        
+        // assert(seg < (uint32_t)Seq_length(m->segments));
+        printf("seg: %d       segment_len: %d\n", seg, (uint32_t)Seq_length(m->segments));
         uint32_t *queried_segment = Seq_get(m->segments, seg);
         assert(queried_segment != NULL);
-        assert(off < queried_segment[0]);
-
-        return (uint32_t)queried_segment[off+1];
+        printf("off: %d       queried_len: %d\n", off, queried_segment[0]);;
+        // assert(off < queried_segment[0]);       
+        return ((queried_segment)[off+1]);
 }
 
 /* Name: memory_map

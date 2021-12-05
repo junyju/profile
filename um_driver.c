@@ -66,7 +66,6 @@ void populate_seg_zero(UM_T um, FILE *fp, uint32_t size)
 
     for (uint32_t index = 0; index < size; ++index) {
         uint32_t word = construct_word(fp);
-
         populate(um, index, word);
     }
 }
@@ -82,7 +81,8 @@ uint32_t construct_word(FILE *fp)
 {
     assert(fp != NULL);
 
-    uint32_t c = 0, word = 0;
+    uint32_t word = 0;
+    unsigned char c;
 
     /* Reads in a char and creates word in big endian order */
     for (int c_loop = 0; c_loop < 4; c_loop++) {
@@ -90,7 +90,7 @@ uint32_t construct_word(FILE *fp)
         assert(!feof(fp));
 
         unsigned lsb = 24 - (8 * c_loop);
-        word = Bitpack_newu(word, 8, lsb, c);
+        word = Bitpack_newu(word, 8, lsb, (uint64_t)c);
     }
 
     return word;

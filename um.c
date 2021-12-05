@@ -30,7 +30,7 @@
    - Register_T representing the registers
    - Memory_T representing segmented memory */
 struct UM_T {
-    Registers_T reg;
+    uint32_t *reg;  // Registers_T reg;
     Memory_T mem;
 };
 
@@ -39,8 +39,8 @@ struct UM_T {
    - one holding pointers to UArray_T's representing segments
    - one holding pointers to uint32_t's representing free segments */
 struct Memory_T {
-        Seq_T segments;
-        Seq_T free;
+    Seq_T segments;
+    Seq_T free;
 };
 
 /* Name: um_new
@@ -55,7 +55,7 @@ UM_T um_new(uint32_t length)
     UM_T um_new = malloc(sizeof(*um_new));
     assert(um_new != NULL);
 
-    um_new->reg = registers_new();
+    um_new->reg = calloc(8,4);  //registers_new();
     um_new->mem = memory_new(length);
 
     return um_new;
@@ -71,7 +71,7 @@ void um_free(UM_T *um)
 {
     assert((*um) != NULL);
 
-    registers_free(&(*um)->reg);
+    free((*um)->reg);   //registers_free(&(*um)->reg);
     memory_free(&(*um)->mem);
     free(*um);
 }
@@ -103,14 +103,14 @@ void um_execute(UM_T um)
     while (prog_counter < seg_zero_len) {
         // word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
         word = seg_zero[prog_counter+1];
-        opcode = Bitpack_getu(word, 4, 28);
+        opcode = Bitpack_getu(word, 4, 28); 
+        printf("opcode: %d\n", opcode);
         prog_counter++;
 
         /* Load value */
         if (opcode == 13) {
-            uint32_t value_size = 25;
-            ra = Bitpack_getu(word, 3, value_size);
-            uint32_t value = Bitpack_getu(word, value_size, 0);
+            ra = Bitpack_getu(word, 3, 25);
+            uint32_t value = Bitpack_getu(word, 25, 0);
             load_value(um, ra, value);
             continue;
         } 
@@ -123,11 +123,10 @@ void um_execute(UM_T um)
         if (opcode == 12) {
             /* Updates programs counter*/
             prog_counter = load_program(um, ra, rb, rc);
-
-            seg_zero = (uint32_t*)Seq_get(um->mem->segments, 0);
+            seg_zero = Seq_get(um->mem->segments, 0);
             assert(seg_zero != NULL);
-
             seg_zero_len = seg_zero[0];
+            printf("prog_counter: %d    seg_zero_len: %d\n", prog_counter, seg_zero_len);
         } else {
             instruction_call(um, opcode, ra, rb, rc);
         }
@@ -166,7 +165,8 @@ void instruction_call(UM_T um, Um_opcode op, uint32_t ra,
         case OUT: output(um, ra, rb, rc);             break;
         case IN: input(um, ra, rb, rc);               break;
 
-        default: assert(true);
+        default: fprintf(stderr, "Invalid instruction: opcode %d\n", op);
+                 exit(EXIT_FAILURE); break;
     }
 }
 
@@ -201,8 +201,16 @@ void conditional_move(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    if (registers_get(um->reg, rc) != 0) {
-        registers_put(um->reg, ra, registers_get(um->reg, rb));
+    // if (registers_get(um->reg, rc) != 0) {
+    //     registers_put(um->reg, ra, registers_get(um->reg, rb));
+    // }
+
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    if(*C != 0) {
+        *A = *B;
     }
 }
 
@@ -218,10 +226,17 @@ void segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // registers_put(um->reg, ra, memory_get(um->mem, rb_val, rc_val));
 
-    registers_put(um->reg, ra, memory_get(um->mem, rb_val, rc_val));
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    if(*C != 0) {
+        *A = memory_get(um->mem, *B, *C);
+    }
 }
 
  /* Name: segmented_store
@@ -236,10 +251,15 @@ void segmented_store(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t ra_val = registers_get(um->reg, ra);
-    uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t ra_val = registers_get(um->reg, ra);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // memory_put(um->mem, ra_val, rb_val, registers_get(um->reg, rc));
 
-    memory_put(um->mem, ra_val, rb_val, registers_get(um->reg, rc));
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    memory_put(um->mem, *A, *B, *C);
 }
 
 /* Name: add
@@ -254,10 +274,15 @@ void add(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // registers_put(um->reg, ra, (rb_val + rc_val));
 
-    registers_put(um->reg, ra, (rb_val + rc_val));
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    *A = (*B + *C) % 4294967296;
 }
 
 /* Name: multiply
@@ -272,10 +297,15 @@ void multiply(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // registers_put(um->reg, ra, (rb_val * rc_val));       
 
-    registers_put(um->reg, ra, (rb_val * rc_val));       
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    *A = ((*B) * (*C)) % 4294967296;
 }
 
 /* Name: divide
@@ -290,11 +320,17 @@ void divide(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
-    assert(rc_val != 0);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // assert(rc_val != 0);
+    // registers_put(um->reg, ra, (rb_val / rc_val));
 
-    registers_put(um->reg, ra, (rb_val / rc_val));
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    assert(*C != 0);
+    *A = ((*B) / (*C)) % 4294967296;
 }
 
 /* Name: nand
@@ -310,10 +346,15 @@ void nand(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
-    uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // registers_put(um->reg, ra, ~(rb_val & rc_val));
 
-    registers_put(um->reg, ra, ~(rb_val & rc_val));
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    *A = ~((*B) & (*C));
 }
 
 /* Name: halt
@@ -345,10 +386,15 @@ void map_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t index = memory_map(um->mem, rc_val);
+    // registers_put(um->reg, rb, index);
 
-    uint32_t index = memory_map(um->mem, rc_val);
-    registers_put(um->reg, rb, index);
+    uint32_t *registers = um->reg;
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    uint32_t index = memory_map(um->mem, *C);
+    *B = index;
 }
 
 /* Name: unmap_segment
@@ -363,9 +409,12 @@ void unmap_segment(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rc_val = registers_get(um->reg, rc);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // memory_unmap(um->mem, rc_val);
 
-    memory_unmap(um->mem, rc_val);
+    uint32_t *registers = um->reg;
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    memory_unmap(um->mem, *C);
 }
 
 /* Name: output
@@ -381,10 +430,14 @@ void output(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rc_val = registers_get(um->reg, rc);
-    assert(rc_val < 256);
+    // uint32_t rc_val = registers_get(um->reg, rc);
+    // assert(rc_val < 256);
+    // putchar(rc_val);
 
-    putchar(rc_val);
+    uint32_t *registers = um->reg;
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
+    assert(*C < 256);
+    putchar(*C);
 }
 
 /* Name: input
@@ -403,12 +456,17 @@ void input(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(ra < 8 && rb < 8 && rc < 8);
 
     int character = fgetc(stdin);
+    // if (character == EOF) {
+    //     registers_put(um->reg, rc, ~0);
+    // }
+    // registers_put(um->reg, rc, character);
 
+    uint32_t *registers = um->reg;
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
     if (character == EOF) {
-        registers_put(um->reg, rc, ~0);
+        *C = ~0;
     }
-
-    registers_put(um->reg, rc, character);
+    *C = character;
 }
 
 /* Name: load_program
@@ -423,34 +481,63 @@ uint32_t load_program(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     assert(um != NULL);
     assert(ra < 8 && rb < 8 && rc < 8);
 
-    uint32_t rb_val = registers_get(um->reg, rb);
+    // uint32_t rb_val = registers_get(um->reg, rb);
+    // /* If rb value is 0, 0 is already loaded into segment 0 */
+    // if (rb_val == 0) {
+    //     return registers_get(um->reg, rc);
+    // }
+    //
+    // /* Get the segment to copy */
+    // UArray_T to_copy = (UArray_T)Seq_get(um->mem->segments, rb_val);
+    // assert(to_copy != NULL);
+    //
+    // /* Creating a copy with the same specifications */
+    // int seg_len = UArray_length(to_copy);
+    // UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
+    // assert(copy != NULL);
+    //
+    // /* Deep copying */
+    // for (int i = 0; i < seg_len; i++){
+    //     *(uint32_t *)UArray_at(copy, i) = 
+    //     *(uint32_t *)UArray_at(to_copy, i);
+    // }
+    //
+    // /* Freeing segment 0 and inserting the copy */
+    // UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
+    // UArray_free(&seg_zero);
+    // Seq_put(um->mem->segments, 0, copy);
+    //
+    // return registers_get(um->reg, rc);
+
+    uint32_t *registers = um->reg;
+    uint32_t *B = &((registers)[rb]);   assert(B != NULL);
+    uint32_t *C = &((registers)[rc]);   assert(C != NULL);
 
     /* If rb value is 0, 0 is already loaded into segment 0 */
-    if (rb_val == 0) {
-        return registers_get(um->reg, rc);
+    if (*B == 0) {
+        return *C;
     }
-    
+
     /* Get the segment to copy */
-    UArray_T to_copy = (UArray_T)Seq_get(um->mem->segments, rb_val);
+    uint32_t *to_copy = Seq_get(um->mem->segments, *B);
     assert(to_copy != NULL);
 
     /* Creating a copy with the same specifications */
-    int seg_len = UArray_length(to_copy);
-    UArray_T copy = UArray_new(seg_len, UArray_size(to_copy));
+    int seg_len = to_copy[0];
+    uint32_t *copy = calloc(seg_len+1, 4);
     assert(copy != NULL);
 
     /* Deep copying */
-    for (int i = 0; i < seg_len; i++){
-        *(uint32_t *)UArray_at(copy, i) = 
-        *(uint32_t *)UArray_at(to_copy, i);
+    for (int i = 0; i < seg_len+1; i++) {
+        copy[i] = to_copy[i];
     }
 
     /* Freeing segment 0 and inserting the copy */
-    UArray_T seg_zero = (UArray_T)Seq_get(um->mem->segments, 0);
-    UArray_free(&seg_zero);
+    uint32_t *seg_zero = Seq_get(um->mem->segments, 0);
+    free(seg_zero);
     Seq_put(um->mem->segments, 0, copy);
 
-    return registers_get(um->reg, rc);
+    return (*C+1);
 }
 
 /* Name: load_value
@@ -465,5 +552,8 @@ void load_value(UM_T um, uint32_t ra, uint32_t val)
     assert(um != NULL);
     assert(ra < 8);
 
-    registers_put(um->reg, ra, val);
+    // registers_put(um->reg, ra, val);
+    uint32_t *registers = um->reg;
+    uint32_t *A = &((registers)[ra]);   assert(A != NULL);
+    *A = val;
 }
