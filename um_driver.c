@@ -81,8 +81,7 @@ uint32_t construct_word(FILE *fp)
 {
     assert(fp != NULL);
 
-    uint32_t word = 0;
-    unsigned char c;
+    uint32_t word = 0, c = 0;
 
     /* Reads in a char and creates word in big endian order */
     for (int c_loop = 0; c_loop < 4; c_loop++) {

@@ -97,14 +97,17 @@ void um_execute(UM_T um)
     // int seg_zero_len = UArray_length(seg_zero);
     int seg_zero_len = seg_zero[0];
     int prog_counter = 0;
-    uint32_t opcode, ra, rb, rc, word;
+    uint32_t opcode, word;
 
     /* Execute words in segment zero until there are none left */
     while (prog_counter < seg_zero_len) {
+        uint32_t ra = 0;
+        uint32_t rb = 0;
+        uint32_t rc = 0;
         // word = *(uint32_t *)UArray_at(seg_zero, prog_counter);
         word = seg_zero[prog_counter+1];
         opcode = Bitpack_getu(word, 4, 28); 
-        printf("opcode: %d\n", opcode);
+        // printf("opcode: %d\n", opcode);
         prog_counter++;
 
         /* Load value */
@@ -126,7 +129,7 @@ void um_execute(UM_T um)
             seg_zero = Seq_get(um->mem->segments, 0);
             assert(seg_zero != NULL);
             seg_zero_len = seg_zero[0];
-            printf("prog_counter: %d    seg_zero_len: %d\n", prog_counter, seg_zero_len);
+            // printf("prog_counter: %d    seg_zero_len: %d\n", prog_counter, seg_zero_len);
         } else {
             instruction_call(um, opcode, ra, rb, rc);
         }
@@ -234,9 +237,7 @@ void segmented_load(UM_T um, uint32_t ra, uint32_t rb, uint32_t rc)
     uint32_t *A = &((registers)[ra]);   assert(A != NULL);
     uint32_t *B = &((registers)[rb]);   assert(B != NULL);
     uint32_t *C = &((registers)[rc]);   assert(C != NULL);
-    if(*C != 0) {
-        *A = memory_get(um->mem, *B, *C);
-    }
+    *A = memory_get(um->mem, *B, *C);
 }
 
  /* Name: segmented_store

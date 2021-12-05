@@ -10,7 +10,7 @@ LDLIBS  = -l40locality -lcii40-O2 -lm
 
 HEADERS = $(shell echo *.h)
 
-EXECS   = writetests um UT
+EXECS   = writetests um UT um_new
 
 all: $(EXECS)
 
@@ -21,6 +21,9 @@ UT: registers.o memory.o um.o bitpack.o unittest.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 um: registers.o memory.o um.o bitpack.o um_driver.o
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+um_new: um_new.o bitpack.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 # To get *any* .o file, compile its .c file with the following rule.

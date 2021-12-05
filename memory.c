@@ -63,7 +63,6 @@ Memory_T memory_new(uint32_t length)
 
         /* Creating segment zero with proper length*/
         memory_map(m_new, length);
-
         return m_new;
 }
 
@@ -152,12 +151,12 @@ uint32_t memory_get(Memory_T m, uint32_t seg, uint32_t off)
         // return *(uint32_t *)UArray_at(queried_segment, off);
         
         assert(m != NULL);
-        // assert(seg < (uint32_t)Seq_length(m->segments));
-        printf("seg: %d       segment_len: %d\n", seg, (uint32_t)Seq_length(m->segments));
+        assert(seg < (uint32_t)Seq_length(m->segments));
+        // printf("seg: %d       segment_len: %d\n", seg, (uint32_t)Seq_length(m->segments));
         uint32_t *queried_segment = Seq_get(m->segments, seg);
         assert(queried_segment != NULL);
-        printf("off: %d       queried_len: %d\n", off, queried_segment[0]);;
-        // assert(off < queried_segment[0]);       
+        // printf("off: %d       queried_len: %d\n", off, queried_segment[0]);;
+        assert(off < queried_segment[0]);       
         return ((queried_segment)[off+1]);
 }
 
